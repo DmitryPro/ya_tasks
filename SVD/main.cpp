@@ -31,18 +31,27 @@ int tests;
 int users;
 int moviesCount;
 
+struct Data {
+
+    int user;
+    int movie;
+    int raiting;
+    Data(int _user, int _movie, int _raiting) : user(_user),
+        movie(_movie), raiting(_raiting) { }
+};
+
 std::map<int, double> bu;
 std::map<int, double> bi;
 std::map<int, std::vector<double> > qi;
 std::map<int, std::vector<double> > pu;
-std::map<int, std::map<int, int> > data; // NO MAP;
+std::vector<Data> data;
 
 std::vector<double> makeParams() {
 
     std::vector<double> res(paramsCount);
     for (size_t i = 0; i < paramsCount; ++i) {
 
-        res[i] = static_cast<double>(abs(rand()) % 10) ;
+        res[i] = 0;
     }
     return res;
 }
@@ -51,21 +60,20 @@ void readData() {
 
     std::cin >> maxRating >> users >> moviesCount >> trains >> tests;
 
+    double totalRaiting = 0;
+
     for (size_t id = 0, user, movie, raiting; id < trains; ++id) {
         std::cin >> user >> movie >> raiting;
-        std::map<int, int> currentUser;
-        if (data.count(user)) {
-            currentUser = data.at(user);
-        }
-        currentUser.insert(std::make_pair(movie, raiting));
-        data.insert(std::make_pair(user, currentUser));
+        totalRaiting += raiting;
+        data.push_back(Data(user, movie, raiting));
         bu.insert(std::make_pair(user, 0.1)); // TODO : make a some tests for change parametrs
         bi.insert(std::make_pair(movie, 0.1));
         qi.insert(std::make_pair(movie, makeParams()));
         pu.insert(std::make_pair(user, makeParams()));
     }
-}
 
+    med = totalRaiting / data.size();
+}
 
 double scalar(int movie, int user) {
     
@@ -88,80 +96,39 @@ double norimalize(std::vector<double> toNorm) {
 
 void train() {
 
-    int countMarks = 0;
-    double raitingSum = 0;
-
-	// we can do it on data reading
-    for (std::map<int, std::map<int, int> >::iterator it = data.begin(); it != data.end(); ++it) {
-        for (std::map<int, int>::iterator info = it->second.begin();
-            info != it->second.end(); ++info) {
-
-            raitingSum += info->second;
-            countMarks++;
-        }
-    }
-
-    med = raitingSum / countMarks;
-
     // I got it , you got it. We got a magic ....
     // TODO: make a normal limits
 
     for (size_t id = 0; id < 150 && sum < previousSum; ++id) {
+         
+        previousSum = sum;
+        sum = 0;
+        for (size_t idx = 0; idx < data.size();++idx) {
 
-        for (std::map<int, std::map<int, int> >::iterator it = data.begin();
-            it != data.end(); ++it) {
-            for (std::map<int, int>::iterator info = it->second.begin();
-            info != it->second.end(); ++info) {
-
-                int realRui = info->second;
+                int realRui = data[idx].raiting;
                 double rui = med +
-                    bi.at(info->first) +
-                    bu.at(it->first) +
-                    scalar(info->first, it->first);
+                    bi.at(data[idx].movie) +
+                    bu.at(data[idx].user) +
+                    scalar(data[idx].movie, data[idx].user);
                 double delta = realRui - rui;
 
+                sum += delta * delta;
+
                 // Update bu and bi
-                bu[it->first] = static_cast<double>(bu[it->first]) +
-                                  alfa * (delta - lambda * static_cast<double>(bu[it->first]));
-                bi[info->first] = static_cast<double>(bi[info->first]) + 
-                                  alfa * (delta - lambda * static_cast<double>(bi[info->first]));
+                bu[data[idx].user] = static_cast<double>(data[idx].user) +
+                    alfa * (delta - lambda * static_cast<double>(data[idx].user));
+                bi[data[idx].movie] = static_cast<double>(bi[data[idx].movie]) +
+                    alfa * (delta - lambda * static_cast<double>(bi[data[idx].movie]));
 
                 // Update params
 
-                std::vector<double> _qi(paramsCount);
-                std::vector<double> _pu(paramsCount);
-
                 for (size_t i = 0; i < paramsCount; ++i) {
-                    _qi[i] = qi.at(info->first)[i] + 
-                        alfa * (delta * static_cast<double>(pu.at(it->first)[i]) - 
-                        lambda * static_cast<double>(qi.at(info->first)[i]));
-                    _pu[i] = pu.at(it->first)[i] +
-                        alfa * (delta * static_cast<double>(qi.at(info->first)[i]) - 
-                        lambda * static_cast<double>(pu.at(it->first)[i]));
+                    double _qi = qi[data[idx].movie][i];
+                    double _pu = pu[data[idx].user][i];
+                    qi[data[idx].movie][i] += alfa * (delta * _pu - lambda * _qi);
+                    pu[data[idx].user][i] += alfa * (delta * _qi - lambda * _pu);
                 }
-
-                qi[info->first] = _qi;
-                pu[it->first] = _pu;
             }
-        }
-
-        previousSum = sum;
-        sum = 0;
-
-        for (auto it = data.begin(); it != data.end(); it++) {
-            for (auto info = it->second.begin(); info != it->second.end(); info++) {
-                
-                double rui = med +
-                    bi.at(info->first) +
-                    bu.at(it->first) +
-                    scalar(info->first, it->first);
-
-                sum += (info->second - rui) * (info->second - rui) + lambda * 
-                       (bi.at(info->first) * bi.at(info->first) +
-                        bu.at(it->first) * bu.at(it->first) + norimalize(qi.at(info->first))
-                       + norimalize(pu.at(it->first)));
-            }
-        }
     }
 }
 
