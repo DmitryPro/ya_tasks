@@ -64,8 +64,8 @@ void readData() {
         std::cin >> user >> movie >> raiting;
         med += raiting;
         data.push_back(Data(user, movie, raiting));
-        bu.insert(std::make_pair(user, threshold));
-        bi.insert(std::make_pair(movie, threshold));
+        bu.insert(std::make_pair(user, 0));
+        bi.insert(std::make_pair(movie, 0));
         qi.insert(std::make_pair(movie, makeParams()));
         pu.insert(std::make_pair(user, makeParams()));
     }
@@ -121,10 +121,6 @@ void train() {
             }
         }
         sum = sqrt(sum / data.size());
-        if (sum > previousSum - threshold) {
-            alfa *= 0.8;
-            threshold *= 0.6;
-        }
     }
 }
 
