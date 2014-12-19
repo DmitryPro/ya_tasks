@@ -72,11 +72,21 @@ void readData(){
 	}
 }
 
+
 double scalar(int movie, int user){
 	
 	double res = 0;
 	for (size_t i = 0; i < paramsCount; i++){
-		res += 0;
+		res += qi.at(movie)[i] * pu.at(user)[i];
+	}
+	return res;
+}
+
+double norimalize(vector<double> toNorm){
+	
+	double res = 0;
+	for (size_t i = 0; i < paramsCount; i++){
+		res += toNorm[i] * toNorm[i];
 	}
 	return res;
 }
@@ -108,7 +118,7 @@ void train(){
 				int realRui = info->second;
 				double rui = u +
 					bi.at(info->first) +
-					bu.at(info->first) +
+					bu.at(it->first) +
 					scalar(info->first, it->first);
 				double delta = realRui - rui;
 
@@ -125,7 +135,7 @@ void train(){
 					_qi[i] = qi.at(info->first)[i] + 
 						gamma * (delta * pu.at(it->first)[i] - lambda * qi.at(info->first)[i]);
 					_pu[i] = pu.at(it->first)[i] +
-						gamma * (delta * qi.at(info->first)[i]) - lambda * pu.at(it->first)[i]);
+						gamma * (delta * qi.at(info->first)[i] - lambda * pu.at(it->first)[i]);
 				}
 
 				qi[info->first] = _qi;
@@ -138,7 +148,14 @@ void train(){
 
 		for (map<int, map<int, int>>::iterator it = data.begin(); it != data.end(); it++){
 			for (map<int, int>::iterator info = it->second.begin(); info != it->second.end(); info++){
+				
+				double rui = u +
+					bi.at(info->first) +
+					bu.at(it->first) +
+					scalar(info->first, it->first);
 
+				sum += (info->second - rui) * (info->second - rui) + lambda * (bi.at(info->first) * bi.at(info->first) +
+					bu.at(it->first) * bu.at(it->first) + norimalize(qi.at(info->first)) + norimalize(pu.at(it->first)));
 
 			}
 		}
@@ -150,6 +167,30 @@ void train(){
 
 void getans(){
 
+	cout << "done" << endl;
+
+	for (size_t i = 0; i < tests; i++){
+
+		int user;
+		int movie;
+		cin >> user >> movie;
+
+		double rui = u;
+
+		if (bi.count(movie)){
+			rui += bi.at(movie);
+		}
+
+		if (bu.count(user)){
+			rui += bu.at(user);
+		}
+
+		if (bi.count(movie) && bu.count(user)){
+			rui += scalar(movie, user);
+		}
+
+		cout << rui << endl;
+	}
 }
 
 int main(){
@@ -157,6 +198,6 @@ int main(){
 	readData();
 	train();
 	getans();
-
+	system("pause");
 	return 0;
 }
