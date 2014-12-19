@@ -3,8 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <math.h>
-#include <hash_map>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 /*
@@ -17,13 +16,14 @@
 
 
 
-const int paramsCount = 3;
+const int paramsCount = 10;
 const double lambda = 0.02;
-static const double alfa = 0.005;
+double alfa = 0.005;
 
-double med;
-double sum = 1e15;
-double previousSum = 1e16;
+double med = 0;
+double sum = 0;
+double previousSum = 2;
+double threshold = 0.01;
 
 int maxRating;
 int trains;
@@ -40,10 +40,10 @@ struct Data {
         movie(_movie), raiting(_raiting) { }
 };
 
-std::map<int, double> bu;
-std::map<int, double> bi;
-std::map<int, std::vector<double> > qi;
-std::map<int, std::vector<double> > pu;
+std::unordered_map<int, double> bu;
+std::unordered_map<int, double> bi;
+std::unordered_map<int, std::vector<double> > qi;
+std::unordered_map<int, std::vector<double> > pu;
 std::vector<Data> data;
 
 std::vector<double> makeParams() {
@@ -60,19 +60,16 @@ void readData() {
 
     std::cin >> maxRating >> users >> moviesCount >> trains >> tests;
 
-    double totalRaiting = 0;
-
     for (size_t id = 0, user, movie, raiting; id < trains; ++id) {
         std::cin >> user >> movie >> raiting;
-        totalRaiting += raiting;
+        med += raiting;
         data.push_back(Data(user, movie, raiting));
-        bu.insert(std::make_pair(user, 0.1)); // TODO : make a some tests for change parametrs
-        bi.insert(std::make_pair(movie, 0.1));
+        bu.insert(std::make_pair(user, threshold));
+        bi.insert(std::make_pair(movie, threshold));
         qi.insert(std::make_pair(movie, makeParams()));
         pu.insert(std::make_pair(user, makeParams()));
     }
-
-    med = totalRaiting / data.size();
+    med /= trains;
 }
 
 double scalar(int movie, int user) {
@@ -103,38 +100,39 @@ void train() {
          
         previousSum = sum;
         sum = 0;
-        for (size_t idx = 0; idx < data.size();++idx) {
+        for (size_t idx = 0; idx < data.size(); ++idx) {
 
-                int realRui = data[idx].raiting;
-                double rui = med +
-                    bi.at(data[idx].movie) +
-                    bu.at(data[idx].user) +
-                    scalar(data[idx].movie, data[idx].user);
-                double delta = realRui - rui;
+            int user = data[idx].user;
+            int movie = data[idx].movie;
+            int raiting = data[idx].raiting;
+            double delta = raiting - med - bu.at(user) - bi.at(movie) - scalar(movie, user);
+            sum += delta * delta;
 
-                sum += delta * delta;
+            bu[user] += alfa * (delta - lambda * bu.at(user));
+            bi[movie] += alfa * (delta - lambda * bi.at(movie));
 
-                // Update bu and bi
-                bu[data[idx].user] = static_cast<double>(data[idx].user) +
-                    alfa * (delta - lambda * static_cast<double>(data[idx].user));
-                bi[data[idx].movie] = static_cast<double>(bi[data[idx].movie]) +
-                    alfa * (delta - lambda * static_cast<double>(bi[data[idx].movie]));
+            // Update params
 
-                // Update params
-
-                for (size_t i = 0; i < paramsCount; ++i) {
-                    double _qi = qi[data[idx].movie][i];
-                    double _pu = pu[data[idx].user][i];
-                    qi[data[idx].movie][i] += alfa * (delta * _pu - lambda * _qi);
-                    pu[data[idx].user][i] += alfa * (delta * _qi - lambda * _pu);
-                }
+            for (size_t i = 0; i < paramsCount; ++i) {
+                double _qi = qi[data[idx].movie][i];
+                double _pu = pu[data[idx].user][i];
+                qi[data[idx].movie][i] += alfa * (delta * _pu - lambda * _qi);
+                pu[data[idx].user][i] += alfa * (delta * _qi - lambda * _pu);
             }
+        }
+        sum = sqrt(sum / data.size());
+        if (sum > previousSum - threshold) {
+            alfa *= 0.8;
+            threshold *= 0.6;
+        }
     }
 }
 
 void getans() {
 
     // cout << "done" << endl;
+    std::cout.precision(7);
+    std::cout << std::fixed;
 
     for (size_t id = 0; id < tests; ++id) {
         int user;
@@ -150,6 +148,7 @@ void getans() {
         if (bi.count(movie) && bu.count(user)) {
             rui += scalar(movie, user);
         }
+        
         std::cout << rui << std::endl;
     }
 }
