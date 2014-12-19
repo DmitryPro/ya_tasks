@@ -17,7 +17,7 @@
 
 
 
-const int paramsCount = 4;
+const int paramsCount = 3;
 const double lambda = 0.02;
 static const double alfa = 0.005;
 
@@ -35,14 +35,14 @@ std::map<int, double> bu;
 std::map<int, double> bi;
 std::map<int, std::vector<double> > qi;
 std::map<int, std::vector<double> > pu;
-std::map<int, std::map<int, int> > data;
+std::map<int, std::map<int, int> > data; // NO MAP;
 
 std::vector<double> makeParams() {
 
     std::vector<double> res(paramsCount);
     for (size_t i = 0; i < paramsCount; ++i) {
 
-        res[i] = 0;
+        res[i] = static_cast<double>(abs(rand()) % 10) ;
     }
     return res;
 }
@@ -91,6 +91,7 @@ void train() {
     int countMarks = 0;
     double raitingSum = 0;
 
+	// we can do it on data reading
     for (std::map<int, std::map<int, int> >::iterator it = data.begin(); it != data.end(); ++it) {
         for (std::map<int, int>::iterator info = it->second.begin();
             info != it->second.end(); ++info) {
@@ -105,7 +106,7 @@ void train() {
     // I got it , you got it. We got a magic ....
     // TODO: make a normal limits
 
-    for (size_t id = 0; id < 500 && sum < previousSum; ++id) {
+    for (size_t id = 0; id < 150 && sum < previousSum; ++id) {
 
         for (std::map<int, std::map<int, int> >::iterator it = data.begin();
             it != data.end(); ++it) {
@@ -147,10 +148,8 @@ void train() {
         previousSum = sum;
         sum = 0;
 
-        for (std::map<int, std::map<int, int> >::iterator it = data.begin();
-            it != data.end(); it++) {
-            for (std::map<int, int>::iterator info = it->second.begin();
-                info != it->second.end(); info++) {
+        for (auto it = data.begin(); it != data.end(); it++) {
+            for (auto info = it->second.begin(); info != it->second.end(); info++) {
                 
                 double rui = med +
                     bi.at(info->first) +
