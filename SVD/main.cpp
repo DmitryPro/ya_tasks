@@ -9,20 +9,19 @@
 
 /*
     Dmitry Prokopenko
-	NRU ITMO
-	December 2014
+    NRU ITMO
+    December 2014
 */
 
 // If it works, then I wrote it. Otherwise, someone changed the code
 
 
-using namespace std;
 
 const int paramsCount = 4;
 const double lambda = 0.02;
-const double gamma = 0.005;
+static const double gamma = 0.005;
 
-double u;
+double med;
 double sum = 1e15;
 double previousSum = 1e16;
 
@@ -32,172 +31,167 @@ int tests;
 int users;
 int moviesCount;
 
-map<int, double> bu;
-map<int, double> bi;
-map<int, vector<double>> qi;
-map<int, vector<double>> pu;
-map<int, map<int, int>> data;
+std::map<int, double> bu;
+std::map<int, double> bi;
+std::map<int, std::vector<double> > qi;
+std::map<int, std::vector<double> > pu;
+std::map<int, std::map<int, int> > data;
 
-vector<double> makeParams(){
+std::vector<double> makeParams() {
 
-	vector<double> res(paramsCount);
-	for (int i = 0; i < paramsCount; i++){
+    std::vector<double> res(paramsCount);
+    for (size_t i = 0; i < paramsCount; ++i) {
 
-		res[i] = rand();
-	}
-	return res;
+        res[i] = 0;
+    }
+    return res;
 }
 
-void readData(){
+void readData() {
 
-	cin >> maxRating >> users >> moviesCount >> trains >> tests;
+    std::cin >> maxRating >> users >> moviesCount >> trains >> tests;
 
-	for (size_t i = 0, user, movie, raiting; i < trains; i++){
-
-		cin >> user >> movie >> raiting;
-
-		map<int, int> currentUser;
-
-		if (data.count(user)){
-			currentUser = data.at(user);
-		}
-
-		currentUser.insert(make_pair(movie, raiting));
-		data.insert(make_pair(user, currentUser));
-
-		bu.insert(make_pair(user, 0.1)); // TODO : make a some tests for change parametrs
-		bi.insert(make_pair(movie, 0.1)); 
-		qi.insert(make_pair(movie, makeParams()));
-		pu.insert(make_pair(user, makeParams()));
-	}
+    for (size_t id = 0, user, movie, raiting; id < trains; ++id) {
+        std::cin >> user >> movie >> raiting;
+        std::map<int, int> currentUser;
+        if (data.count(user)) {
+            currentUser = data.at(user);
+        }
+        currentUser.insert(std::make_pair(movie, raiting));
+        data.insert(std::make_pair(user, currentUser));
+        bu.insert(std::make_pair(user, 0.1)); // TODO : make a some tests for change parametrs
+        bi.insert(std::make_pair(movie, 0.1));
+        qi.insert(std::make_pair(movie, makeParams()));
+        pu.insert(std::make_pair(user, makeParams()));
+    }
 }
 
 
-double scalar(int movie, int user){
-	
-	double res = 0;
-	for (size_t i = 0; i < paramsCount; i++){
-		res += qi.at(movie)[i] * pu.at(user)[i];
-	}
-	return res;
+double scalar(int movie, int user) {
+    
+    double res = 0;
+    for (size_t i = 0; i < paramsCount; ++i) {
+        res += qi.at(movie)[i] * pu.at(user)[i];
+    }
+    return res;
 }
 
-double norimalize(vector<double> toNorm){
-	
-	double res = 0;
-	for (size_t i = 0; i < paramsCount; i++){
-		res += toNorm[i] * toNorm[i];
-	}
-	return res;
+double norimalize(std::vector<double> toNorm) {
+    
+    double res = 0;
+    for (size_t i = 0; i < paramsCount; ++i) {
+        res += toNorm[i] * toNorm[i];
+    }
+    return res;
 }
 
 
-void train(){
+void train() {
 
-	int countMarks = 0;
-	double raitingSum = 0;
+    int countMarks = 0;
+    double raitingSum = 0;
 
-	for (map<int, map<int, int>>::iterator it = data.begin(); it != data.end(); it++){
-		for (map<int, int>::iterator info = it->second.begin(); info != it->second.end(); info++){
+    for (std::map<int, std::map<int, int> >::iterator it = data.begin(); it != data.end(); ++it) {
+        for (std::map<int, int>::iterator info = it->second.begin();
+            info != it->second.end(); ++info) {
 
-			raitingSum += info->second;
-			countMarks++;
-		}
-	}
+            raitingSum += info->second;
+            countMarks++;
+        }
+    }
 
-	u = raitingSum / countMarks;
+    med = raitingSum / countMarks;
 
-	// I got it , you got it. We got a magic ....
-	// TODO: make a normal limits
+    // I got it , you got it. We got a magic ....
+    // TODO: make a normal limits
 
-	for (size_t i = 0; i < 1000 && sum < previousSum; i++){
+    for (size_t id = 0; id < 1000 && sum < previousSum; ++id) {
 
-		for (map<int, map<int, int>>::iterator it = data.begin(); it != data.end(); it++){
-			for (map<int, int>::iterator info = it->second.begin(); info != it->second.end(); info++){
+        for (std::map<int, std::map<int, int> >::iterator it = data.begin();
+            it != data.end(); ++it) {
+            for (std::map<int, int>::iterator info = it->second.begin();
+            info != it->second.end(); ++info) {
 
-				int realRui = info->second;
-				double rui = u +
-					bi.at(info->first) +
-					bu.at(it->first) +
-					scalar(info->first, it->first);
-				double delta = realRui - rui;
+                int realRui = info->second;
+                double rui = med +
+                    bi.at(info->first) +
+                    bu.at(it->first) +
+                    scalar(info->first, it->first);
+                double delta = realRui - rui;
 
-				//Update bu and bi
-				bu[it->first] = bu[it->first] + gamma * (delta - lambda * bu[it->first]);
-				bi[info->first] = bi[info->first] + gamma * (delta - lambda * bi[info->first]);
+                // Update bu and bi
+                bu[it->first] = static_cast<double>(bu[it->first]) +
+                                  gamma * (delta - lambda * static_cast<double>(bu[it->first]));
+                bi[info->first] = static_cast<double>(bi[info->first]) + 
+                                  gamma * (delta - lambda * static_cast<double>(bi[info->first]));
 
-				//Update params
+                // Update params
 
-				vector<double> _qi(paramsCount);
-				vector<double> _pu(paramsCount);
+                std::vector<double> _qi(paramsCount);
+                std::vector<double> _pu(paramsCount);
 
-				for (size_t i = 0; i < paramsCount; i++){
-					_qi[i] = qi.at(info->first)[i] + 
-						gamma * (delta * pu.at(it->first)[i] - lambda * qi.at(info->first)[i]);
-					_pu[i] = pu.at(it->first)[i] +
-						gamma * (delta * qi.at(info->first)[i] - lambda * pu.at(it->first)[i]);
-				}
+                for (size_t i = 0; i < paramsCount; ++i) {
+                    _qi[i] = qi.at(info->first)[i] + 
+                        gamma * (delta * static_cast<double>(pu.at(it->first)[i]) - 
+                        lambda * static_cast<double>(qi.at(info->first)[i]));
+                    _pu[i] = pu.at(it->first)[i] +
+                        gamma * (delta * static_cast<double>(qi.at(info->first)[i]) - 
+                        lambda * static_cast<double>(pu.at(it->first)[i]));
+                }
 
-				qi[info->first] = _qi;
-				pu[it->first] = _pu;
-			}
-		}
+                qi[info->first] = _qi;
+                pu[it->first] = _pu;
+            }
+        }
 
-		previousSum = sum;
-		sum = 0;
+        previousSum = sum;
+        sum = 0;
 
-		for (map<int, map<int, int>>::iterator it = data.begin(); it != data.end(); it++){
-			for (map<int, int>::iterator info = it->second.begin(); info != it->second.end(); info++){
-				
-				double rui = u +
-					bi.at(info->first) +
-					bu.at(it->first) +
-					scalar(info->first, it->first);
+        for (std::map<int, std::map<int, int> >::iterator it = data.begin();
+            it != data.end(); it++) {
+            for (std::map<int, int>::iterator info = it->second.begin();
+                info != it->second.end(); info++) {
+                
+                double rui = med +
+                    bi.at(info->first) +
+                    bu.at(it->first) +
+                    scalar(info->first, it->first);
 
-				sum += (info->second - rui) * (info->second - rui) + lambda * (bi.at(info->first) * bi.at(info->first) +
-					bu.at(it->first) * bu.at(it->first) + norimalize(qi.at(info->first)) + norimalize(pu.at(it->first)));
-
-			}
-		}
-
-
-	}
-
+                sum += (info->second - rui) * (info->second - rui) + lambda * 
+                       (bi.at(info->first) * bi.at(info->first) +
+                        bu.at(it->first) * bu.at(it->first) + norimalize(qi.at(info->first))
+                       + norimalize(pu.at(it->first)));
+            }
+        }
+    }
 }
 
-void getans(){
+void getans() {
 
-	cout << "done" << endl;
+    // cout << "done" << endl;
 
-	for (size_t i = 0; i < tests; i++){
-
-		int user;
-		int movie;
-		cin >> user >> movie;
-
-		double rui = u;
-
-		if (bi.count(movie)){
-			rui += bi.at(movie);
-		}
-
-		if (bu.count(user)){
-			rui += bu.at(user);
-		}
-
-		if (bi.count(movie) && bu.count(user)){
-			rui += scalar(movie, user);
-		}
-
-		cout << rui << endl;
-	}
+    for (size_t id = 0; id < tests; ++id) {
+        int user;
+        int movie;
+        std::cin >> user >> movie;
+        double rui = med;
+        if (bi.count(movie)) {
+            rui += bi.at(movie);
+        }
+        if (bu.count(user)) {
+            rui += bu.at(user);
+        }
+        if (bi.count(movie) && bu.count(user)) {
+            rui += scalar(movie, user);
+        }
+        std::cout << rui << std::endl;
+    }
 }
 
-int main(){
+int main() {
 
-	readData();
-	train();
-	getans();
-	system("pause");
-	return 0;
+    readData();
+    train();
+    getans();
+    return 0;
 }
