@@ -13,7 +13,7 @@
 	December 2014
 */
 
-// Если это работает , то это написал я. В противном случае бабайка залезла в мой код
+// If it works, then I wrote it. Otherwise, someone changed the code
 
 
 using namespace std;
@@ -65,7 +65,7 @@ void readData(){
 		currentUser.insert(make_pair(movie, raiting));
 		data.insert(make_pair(user, currentUser));
 
-		bu.insert(make_pair(user, 0.1)); // TODO : сделать пару тестов для изменения параметра
+		bu.insert(make_pair(user, 0.1)); // TODO : make a some tests for change parametrs
 		bi.insert(make_pair(movie, 0.1)); 
 		qi.insert(make_pair(movie, makeParams()));
 		pu.insert(make_pair(user, makeParams()));
@@ -81,7 +81,7 @@ double scalar(int movie, int user){
 	return res;
 }
 
-// Дать мозги , но не довести до восстания машин
+
 void train(){
 
 	int countMarks = 0;
@@ -95,11 +95,10 @@ void train(){
 		}
 	}
 
-	// Ухууу мы получили средний рейтинг
 	u = raitingSum / countMarks;
 
 	// I got it , you got it. We got a magic ....
-	// TODO придумать нормальные ограничения цикла
+	// TODO: make a normal limits
 
 	for (size_t i = 0; i < 1000 && sum < previousSum; i++){
 
@@ -113,11 +112,11 @@ void train(){
 					scalar(info->first, it->first);
 				double delta = realRui - rui;
 
-				//Обновляем bu и bi
+				//Update bu and bi
 				bu[it->first] = bu[it->first] + gamma * (delta - lambda * bu[it->first]);
 				bi[info->first] = bi[info->first] + gamma * (delta - lambda * bi[info->first]);
 
-				//Обновляем параметры
+				//Update params
 
 				vector<double> _qi(paramsCount);
 				vector<double> _pu(paramsCount);
