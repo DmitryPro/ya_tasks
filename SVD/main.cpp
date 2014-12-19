@@ -19,7 +19,7 @@
 
 const int paramsCount = 4;
 const double lambda = 0.02;
-static const double gamma = 0.005;
+static const double alfa = 0.005;
 
 double med;
 double sum = 1e15;
@@ -105,7 +105,7 @@ void train() {
     // I got it , you got it. We got a magic ....
     // TODO: make a normal limits
 
-    for (size_t id = 0; id < 1000 && sum < previousSum; ++id) {
+    for (size_t id = 0; id < 500 && sum < previousSum; ++id) {
 
         for (std::map<int, std::map<int, int> >::iterator it = data.begin();
             it != data.end(); ++it) {
@@ -121,9 +121,9 @@ void train() {
 
                 // Update bu and bi
                 bu[it->first] = static_cast<double>(bu[it->first]) +
-                                  gamma * (delta - lambda * static_cast<double>(bu[it->first]));
+                                  alfa * (delta - lambda * static_cast<double>(bu[it->first]));
                 bi[info->first] = static_cast<double>(bi[info->first]) + 
-                                  gamma * (delta - lambda * static_cast<double>(bi[info->first]));
+                                  alfa * (delta - lambda * static_cast<double>(bi[info->first]));
 
                 // Update params
 
@@ -132,10 +132,10 @@ void train() {
 
                 for (size_t i = 0; i < paramsCount; ++i) {
                     _qi[i] = qi.at(info->first)[i] + 
-                        gamma * (delta * static_cast<double>(pu.at(it->first)[i]) - 
+                        alfa * (delta * static_cast<double>(pu.at(it->first)[i]) - 
                         lambda * static_cast<double>(qi.at(info->first)[i]));
                     _pu[i] = pu.at(it->first)[i] +
-                        gamma * (delta * static_cast<double>(qi.at(info->first)[i]) - 
+                        alfa * (delta * static_cast<double>(qi.at(info->first)[i]) - 
                         lambda * static_cast<double>(pu.at(it->first)[i]));
                 }
 
