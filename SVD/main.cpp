@@ -23,8 +23,8 @@ const double lambda = 0.02;
 const double gamma = 0.005;
 
 double u;
-double sum;
-double previousSum;
+double sum = 1e15;
+double previousSum = 1e16;
 
 int maxRating;
 int trains;
